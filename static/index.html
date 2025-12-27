@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <title>Rocket Flight Solver</title>
 
-  <!-- 🔴 关键：移动端适配 -->
+  <!-- 🔴 移动端适配 -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
@@ -76,6 +76,61 @@
       text-align: center;
       line-height: 1.6;
     }
+
+    /* ===== Result Card ===== */
+    #result-card {
+      margin-top: 20px;
+      padding: 16px;
+      border-radius: 12px;
+      background: white;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+      font-size: 15px;
+      line-height: 1.6;
+      display: none;
+    }
+
+    .card-title {
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+
+    .card-row {
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .ok {
+      color: #16a34a;
+      font-weight: 600;
+    }
+
+    .warn {
+      color: #dc2626;
+      font-weight: 600;
+    }
+
+    /* ===== History Card ===== */
+    #history-card {
+      margin-top: 16px;
+      padding: 12px;
+      background: #f9fafb;
+      border-radius: 10px;
+      font-size: 13px;
+    }
+
+    .history-title {
+      font-weight: 600;
+      margin-bottom: 6px;
+    }
+
+    .history-item {
+      padding: 6px 0;
+      border-bottom: 1px solid #e5e7eb;
+    }
+
+    .history-item:last-child {
+      border-bottom: none;
+    }
   </style>
 </head>
 
@@ -116,6 +171,13 @@
 
   <button onclick="run()">Compute</button>
 
+  <!-- Result -->
+  <div id="result-card"></div>
+
+  <!-- History -->
+  <div id="history-card"></div>
+
+  <!-- Plot -->
   <div id="plot"></div>
 
   <footer>
@@ -135,6 +197,7 @@ async function run() {
     target_apogee: +target.value
   };
 
+  // ---------- fetch ----------
   const curve = await (await fetch("/curve", {
     method: "POST",
     headers: {"Content-Type": "application/json"},
@@ -147,6 +210,7 @@ async function run() {
     body: JSON.stringify(payload)
   })).json();
 
+  // ---------- plot ----------
   Plotly.newPlot("plot", [
     { x: curve.mass, y: curve.apogee, mode: "lines", name: "Predicted apogee" },
     { x: curve.mass, y: curve.apogee_hi, line:{width:0}, showlegend:false },
@@ -157,6 +221,48 @@ async function run() {
     xaxis: { title: "Liftoff mass (g)" },
     yaxis: { title: "Apogee (ft)" }
   });
+
+  // ---------- result card ----------
+  const card = document.getElementById("result-card");
+  card.style.display = "block";
+
+  const meets = sol.confidence >= 75;
+
+  card.innerHTML = `
+    <div class="card-title">📊 Computation Result</div>
+    <div class="card-row"><span>Recommended mass</span><strong>${sol.mass.toFixed(1)} g</strong></div>
+    <div class="card-row"><span>Predicted apogee</span><strong>${sol.H_mean.toFixed(1)} ft</strong></div>
+    <div class="card-row"><span>Confidence</span><strong>${sol.confidence.toFixed(1)} %</strong></div>
+    <div class="card-row"><span>Flight time</span><strong>${sol.flight_time.toFixed(2)} s</strong></div>
+    <div style="margin-top:8px" class="${meets ? "ok" : "warn"}">
+      ${meets ? "✔ Meets 75% confidence requirement" : "⚠ Below confidence requirement"}
+    </div>
+  `;
+
+  // ---------- history ----------
+  const record = {
+    time: new Date().toLocaleString(),
+    engine: payload.engine,
+    target: payload.target_apogee,
+    mass: sol.mass,
+    confidence: sol.confidence
+  };
+
+  let history = JSON.parse(localStorage.getItem("rocket_history") || "[]");
+  history.unshift(record);
+  history = history.slice(0, 5);
+  localStorage.setItem("rocket_history", JSON.stringify(history));
+
+  const historyCard = document.getElementById("history-card");
+  historyCard.innerHTML = `
+    <div class="history-title">📜 Recent Runs</div>
+    ${history.map(h => `
+      <div class="history-item">
+        <div><strong>${h.engine}</strong> @ ${h.time}</div>
+        <div>Target ${h.target} ft → <strong>${h.mass.toFixed(1)} g</strong> (${h.confidence.toFixed(1)}%)</div>
+      </div>
+    `).join("")}
+  `;
 }
 </script>
 
