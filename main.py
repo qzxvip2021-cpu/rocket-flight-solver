@@ -7,7 +7,7 @@ Unauthorized copying, modification, or redistribution is prohibited.
 """
 
 import os
-import csv
+import cs
 from datetime import datetime
 
 import numpy as np
@@ -148,6 +148,13 @@ def submit_flight(data: FlightSubmitRequest):
     if data.password != TEAM_PASSWORD:
         raise HTTPException(status_code=403, detail="Invalid team password")
 
+    # --- basic validation ---
+    if data.liftoff_mass <= 0 or data.apogee <= 0:
+        raise HTTPException(status_code=400, detail="Invalid flight data")
+
+    if data.humidity < 0 or data.humidity > 100:
+        raise HTTPException(status_code=400, detail="Invalid humidity")
+
     os.makedirs(DATA_DIR, exist_ok=True)
     file_exists = os.path.exists(DATA_FILE)
 
@@ -181,4 +188,3 @@ def submit_flight(data: FlightSubmitRequest):
         "status": "ok",
         "message": "Flight data submitted successfully"
     }
-
