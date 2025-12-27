@@ -1,3 +1,11 @@
+"""
+Rocket Flight Solver
+© 2025 George Qiao. All rights reserved.
+
+This software is for educational and competition use only.
+Unauthorized copying, modification, or redistribution is prohibited.
+"""
+
 from fastapi import FastAPI, HTTPException
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
@@ -113,3 +121,4 @@ def curve(req: CurveRequest):
         "H_window": H_WINDOW,
         "confidence_req": 0.75,
     }
+
