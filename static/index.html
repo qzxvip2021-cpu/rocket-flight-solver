@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Rocket Flight Solver</title>
+
+<script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+
+<style>
+body { font-family: Arial; margin: 30px; }
+input, select, button { margin: 5px; padding: 5px; }
+#plot { max-width: 900px; height: 600px; }
+</style>
+</head>
+
+<body>
+
+<h2>🚀 Rocket Flight Solver</h2>
+<h4>Made by George Qiao</h4>
+
+Engine:
+<select id="engine">
+  <option>F20-4W</option>
+  <option>F23-4FJ</option>
+  <option>F42-4T</option>
+  <option>F52-8C</option>
+</select><br>
+
+Temperature (°C): <input id="temp" value="20">
+Pressure (hPa): <input id="pressure" value="1015">
+Humidity (%): <input id="humidity" value="50"><br>
+
+Target apogee (ft): <input id="target" value="750"><br>
+
+<button onclick="runSolver()">Compute</button>
+
+<hr>
+<div id="plot"></div>
+
+<script>
+async function runSolver() {
+
+const payload = {
+  engine: engine.value,
+  temperature: Number(temp.value),
+  pressure: Number(pressure.value),
+  humidity: Number(humidity.value),
+  target_apogee: Number(target.value)
+};
+
+const curve = await (await fetch("/curve", {
+  method: "POST",
+  headers: {"Content-Type": "application/json"},
+  body: JSON.stringify(payload)
+})).json();
+
+const sol = await (await fetch("/solve", {
+  method: "POST",
+  headers: {"Content-Type": "application/json"},
+  body: JSON.stringify(payload)
+})).json();
+
+// ---------- safe mass window ----------
+const safeMass = curve.mass.filter((m, i) =>
+  curve.probability[i] >= curve.confidence_req
+);
+
+let safeBand = null;
+if (safeMass.length > 0) {
+  safeBand = {
+    type: "rect",
+    xref: "x",
+    yref: "paper",
+    x0: Math.min(...safeMass),
+    x1: Math.max(...safeMass),
+    y0: 0,
+    y1: 1,
+    fillcolor: "rgba(0,180,0,0.12)",
+    line: { width: 0 }
+  };
+}
+
+// ---------- traces ----------
+const traces = [
+  {
+    x: curve.mass,
+    y: curve.apogee,
+    mode: "lines",
+    name: "Predicted apogee"
+  },
+  {
+    x: curve.mass,
+    y: curve.apogee_hi,
+    mode: "lines",
+    line: {width: 0},
+    showlegend: false
+  },
+  {
+    x: curve.mass,
+    y: curve.apogee_lo,
+    fill: "tonexty",
+    fillcolor: "rgba(65,105,225,0.25)",
+    line: {width: 0},
+    name: "±1σ confidence"
+  },
+  {
+    x: [sol.mass],
+    y: [sol.H_mean],
+    mode: "markers",
+    name: "Recommended mass",
+    marker: {color: "red", size: 10}
+  }
+];
+
+// ---------- layout ----------
+const layout = {
+  title: "Apogee vs Liftoff Mass (75% Confidence Region)",
+  xaxis: { title: "Liftoff mass (g)" },
+  yaxis: { title: "Apogee (ft)" },
+  shapes: safeBand ? [safeBand] : [],
+  annotations: safeBand ? [{
+    x: (safeBand.x0 + safeBand.x1) / 2,
+    y: 1.02,
+    xref: "x",
+    yref: "paper",
+    text: "Safe mass window (≥75%)",
+    showarrow: false,
+    font: {color: "green"}
+  }] : []
+};
+
+Plotly.newPlot("plot", traces, layout);
+}
+</script>
+
+</body>
+</html>
