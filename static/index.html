@@ -36,14 +36,14 @@ async function run() {
     target_apogee: +target.value
   };
 
-  const curveResp = await fetch("/api/curve", {
+  const curveResp = await fetch("/curve", {
     method: "POST",
     headers: {"Content-Type": "application/json"},
     body: JSON.stringify(payload)
   });
   const curve = await curveResp.json();
 
-  const solveResp = await fetch("/api/solve", {
+  const solveResp = await fetch("/solve", {
     method: "POST",
     headers: {"Content-Type": "application/json"},
     body: JSON.stringify(payload)
@@ -94,4 +94,5 @@ async function run() {
 
 </body>
 </html>
+
 
