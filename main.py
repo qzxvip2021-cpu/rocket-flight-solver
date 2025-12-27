@@ -36,7 +36,10 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 # Config
 # =========================================================
 
-TEAM_PASSWORD = os.getenv("TEAM_PASSWORD", "DEV_PASSWORD")
+TEAM_PASSWORD = os.getenv("TEAM_PASSWORD")
+
+if TEAM_PASSWORD is None:
+    raise RuntimeError("TEAM_PASSWORD is not set")
 
 DATA_DIR = "data"
 DATA_FILE = os.path.join(DATA_DIR, "flights.csv")
@@ -178,3 +181,4 @@ def submit_flight(data: FlightSubmitRequest):
         "status": "ok",
         "message": "Flight data submitted successfully"
     }
+
