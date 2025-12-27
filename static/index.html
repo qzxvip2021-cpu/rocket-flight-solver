@@ -199,20 +199,35 @@ async function run() {
     target_apogee: +target.value
   };
 
-  // ---------- fetch ----------
-  const curve = await (await fetch("/curve", {
+  // ===== fetch curve =====
+  const curveResp = await fetch("/api/curve", {
     method: "POST",
     headers: {"Content-Type": "application/json"},
     body: JSON.stringify(payload)
-  })).json();
+  });
 
-  const sol = await (await fetch("/solve", {
+  if (!curveResp.ok) {
+    alert("Curve API error");
+    return;
+  }
+
+  const curve = await curveResp.json();
+
+  // ===== fetch solve =====
+  const solveResp = await fetch("/api/solve", {
     method: "POST",
     headers: {"Content-Type": "application/json"},
     body: JSON.stringify(payload)
-  })).json();
+  });
 
-  // ---------- plot ----------
+  if (!solveResp.ok) {
+    alert("Solve API error");
+    return;
+  }
+
+  const sol = await solveResp.json();
+
+  // ===== plot =====
   Plotly.newPlot("plot", [
     { x: curve.mass, y: curve.apogee, mode: "lines", name: "Predicted apogee" },
     { x: curve.mass, y: curve.apogee_hi, line:{width:0}, showlegend:false },
@@ -224,54 +239,26 @@ async function run() {
     yaxis: { title: "Apogee (ft)" }
   });
 
-  // ---------- result card ----------
+  // ===== result card =====
   const card = document.getElementById("result-card");
   card.style.display = "block";
 
   const meets = sol.confidence >= 75;
-  const flightTimeText = sol.flight_time != null
-    ? `${sol.flight_time.toFixed(2)} s`
-    : "N/A";
 
   card.innerHTML = `
     <div class="card-title">📊 Computation Result</div>
-
     <div class="card-row"><span>Recommended mass</span><strong>${sol.mass.toFixed(1)} g</strong></div>
     <div class="card-row"><span>Predicted apogee</span><strong>${sol.H_mean.toFixed(1)} ft</strong></div>
     <div class="card-row"><span>Confidence</span><strong>${sol.confidence.toFixed(1)} %</strong></div>
-    <div class="card-row"><span>Flight time</span><strong>${flightTimeText}</strong></div>
-
+    <div class="card-row"><span>Flight time</span><strong>${sol.flight_time?.toFixed(2) ?? "N/A"} s</strong></div>
     <div style="margin-top:8px" class="${meets ? "ok" : "warn"}">
       ${meets ? "✔ Meets 75% confidence requirement" : "⚠ Below confidence requirement"}
     </div>
   `;
-
-  // ---------- history ----------
-  const record = {
-    time: new Date().toLocaleString(),
-    engine: payload.engine,
-    target: payload.target_apogee,
-    mass: sol.mass,
-    confidence: sol.confidence
-  };
-
-  let history = JSON.parse(localStorage.getItem("rocket_history") || "[]");
-  history.unshift(record);
-  history = history.slice(0, 5);
-  localStorage.setItem("rocket_history", JSON.stringify(history));
-
-  const historyCard = document.getElementById("history-card");
-  historyCard.innerHTML = `
-    <div class="history-title">📜 Recent Runs</div>
-    ${history.map(h => `
-      <div class="history-item">
-        <div><strong>${h.engine}</strong> @ ${h.time}</div>
-        <div>Target ${h.target} ft → <strong>${h.mass.toFixed(1)} g</strong> (${h.confidence.toFixed(1)}%)</div>
-      </div>
-    `).join("")}
-  `;
 }
 </script>
 
+
 </body>
 </html>
+
