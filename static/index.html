@@ -3,28 +3,127 @@
 <head>
   <meta charset="UTF-8" />
   <title>Rocket Flight Solver</title>
+
+  <!-- 🔴 关键：移动端适配 -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
   <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+      margin: 0;
+      padding: 16px;
+      background: #fafafa;
+      color: #222;
+    }
+
+    h2 {
+      margin-bottom: 12px;
+    }
+
+    .container {
+      max-width: 720px;
+      margin: 0 auto;
+    }
+
+    .form-group {
+      margin-bottom: 12px;
+    }
+
+    label {
+      display: block;
+      font-size: 14px;
+      margin-bottom: 4px;
+      color: #555;
+    }
+
+    input, select {
+      width: 100%;
+      padding: 10px;
+      font-size: 16px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+    }
+
+    button {
+      width: 100%;
+      margin-top: 12px;
+      padding: 12px;
+      font-size: 16px;
+      background: #2563eb;
+      color: white;
+      border: none;
+      border-radius: 8px;
+    }
+
+    button:active {
+      background: #1e40af;
+    }
+
+    #plot {
+      margin-top: 24px;
+      width: 100%;
+      min-height: 420px;
+    }
+
+    footer {
+      margin-top: 32px;
+      padding-top: 12px;
+      border-top: 1px solid #ddd;
+      font-size: 12px;
+      color: #777;
+      text-align: center;
+      line-height: 1.6;
+    }
+  </style>
 </head>
 
 <body>
+<div class="container">
 
-<h2>🚀 Rocket Flight Solver</h2>
+  <h2>🚀 Rocket Flight Solver</h2>
 
-<select id="engine">
-  <option>F20-4W</option>
-  <option>F23-4FJ</option>
-  <option>F42-4T</option>
-  <option>F52-8C</option>
-</select>
+  <div class="form-group">
+    <label>Engine</label>
+    <select id="engine">
+      <option>F20-4W</option>
+      <option>F23-4FJ</option>
+      <option>F42-4T</option>
+      <option>F52-8C</option>
+    </select>
+  </div>
 
-<input id="temp" value="20">
-<input id="pressure" value="1015">
-<input id="humidity" value="50">
-<input id="target" value="750">
+  <div class="form-group">
+    <label>Temperature (°C)</label>
+    <input id="temp" type="number" value="20">
+  </div>
 
-<button onclick="run()">Compute</button>
+  <div class="form-group">
+    <label>Pressure (hPa)</label>
+    <input id="pressure" type="number" value="1015">
+  </div>
 
-<div id="plot"></div>
+  <div class="form-group">
+    <label>Humidity (%)</label>
+    <input id="humidity" type="number" value="50">
+  </div>
+
+  <div class="form-group">
+    <label>Target apogee (ft)</label>
+    <input id="target" type="number" value="750">
+  </div>
+
+  <button onclick="run()">Compute</button>
+
+  <div id="plot"></div>
+
+  <footer>
+    © 2025 George Qiao. All rights reserved.<br>
+    Rocket Flight Solver — for educational & competition use only.
+  </footer>
+
+</div>
 
 <script>
 async function run() {
@@ -36,63 +135,30 @@ async function run() {
     target_apogee: +target.value
   };
 
-  const curveResp = await fetch("/curve", {
+  const curve = await (await fetch("/curve", {
     method: "POST",
     headers: {"Content-Type": "application/json"},
     body: JSON.stringify(payload)
-  });
-  const curve = await curveResp.json();
+  })).json();
 
-  const solveResp = await fetch("/solve", {
+  const sol = await (await fetch("/solve", {
     method: "POST",
     headers: {"Content-Type": "application/json"},
     body: JSON.stringify(payload)
-  });
-  const sol = await solveResp.json();
+  })).json();
 
   Plotly.newPlot("plot", [
-    {
-      x: curve.mass,
-      y: curve.apogee,
-      mode: "lines",
-      name: "Predicted apogee"
-    },
-    {
-      x: curve.mass,
-      y: curve.apogee_hi,
-      line: { width: 0 },
-      showlegend: false
-    },
-    {
-      x: curve.mass,
-      y: curve.apogee_lo,
-      fill: "tonexty",
-      name: "±1σ confidence"
-    },
-    {
-      x: [sol.mass],
-      y: [sol.H_mean],
-      mode: "markers",
-      name: "Recommended mass"
-    }
-  ]);
+    { x: curve.mass, y: curve.apogee, mode: "lines", name: "Predicted apogee" },
+    { x: curve.mass, y: curve.apogee_hi, line:{width:0}, showlegend:false },
+    { x: curve.mass, y: curve.apogee_lo, fill:"tonexty", name:"±1σ confidence" },
+    { x: [sol.mass], y: [sol.H_mean], mode:"markers", name:"Recommended mass" }
+  ], {
+    margin: { t: 40, l: 50, r: 20, b: 50 },
+    xaxis: { title: "Liftoff mass (g)" },
+    yaxis: { title: "Apogee (ft)" }
+  });
 }
 </script>
 
-<hr>
-
-<footer style="
-  margin-top: 30px;
-  font-size: 12px;
-  color: #666;
-  text-align: center;
-  line-height: 1.6;
-">
-  © 2025 George Qiao. All rights reserved.<br>
-  Rocket Flight Solver — for educational & competition use only.
-</footer>
-
 </body>
 </html>
-
-
