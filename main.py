@@ -6,25 +6,45 @@ This software is for educational and competition use only.
 Unauthorized copying, modification, or redistribution is prohibited.
 """
 
-from fastapi import FastAPI, HTTPException
-from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
-from pydantic import BaseModel
+import os
+import csv
+from datetime import datetime
 
 import numpy as np
-from scipy.stats import norm
+from fastapi import FastAPI, HTTPException
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel
 
 from solver.solver import solve_mass
-from solver.constants import SITE, H_WINDOW, MIN_LIFTOFF_MASS, MAX_LIFTOFF_MASS
+from solver.constants import SITE
 from solver.engines import ENGINES, engine_scale
 from solver.models import beta, sigma_H, m0, beta_T, RHO_REF
 from solver.atmosphere import atmosphere_density
 
+
+# =========================================================
+# App
+# =========================================================
+
 app = FastAPI(title="Rocket Flight Solver")
+
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 
-# ---------- request models ----------
+# =========================================================
+# Config
+# =========================================================
+
+TEAM_PASSWORD = os.getenv("TEAM_PASSWORD", "DEV_PASSWORD")
+
+DATA_DIR = "data"
+DATA_FILE = os.path.join(DATA_DIR, "flights.csv")
+
+
+# =========================================================
+# Models
+# =========================================================
 
 class SolveRequest(BaseModel):
     engine: str
@@ -34,20 +54,31 @@ class SolveRequest(BaseModel):
     target_apogee: float
 
 
-class CurveRequest(SolveRequest):
-    pass
+class FlightSubmitRequest(BaseModel):
+    password: str
+
+    engine: str
+    liftoff_mass: float
+    apogee: float
+    flight_time: float
+
+    temperature: float
+    pressure: float
+    humidity: float
 
 
-# ---------- pages ----------
+# =========================================================
+# Routes
+# =========================================================
 
 @app.get("/")
-def root():
+def index():
     return FileResponse("static/index.html")
 
 
-# ---------- core solver ----------
+# ---------- Solver ----------
 
-@app.post("/solve")
+@app.post("/api/solve")
 def solve(req: SolveRequest):
 
     if req.engine not in ENGINES:
@@ -71,54 +102,79 @@ def solve(req: SolveRequest):
     )
 
 
-# ---------- A3-1: curve + probability ----------
+# ---------- Curve ----------
 
-@app.post("/curve")
-def curve(req: CurveRequest):
-
-    weather = {
-        "temperature": req.temperature,
-        "pressure": req.pressure,
-        "humidity": req.humidity,
-        "elevation": SITE["elevation_m"],
-    }
+@app.post("/api/curve")
+def curve(req: SolveRequest):
 
     rho = atmosphere_density(
-        p_qnh_hpa=req.pressure,
-        temperature_c=req.temperature,
-        humidity=req.humidity,
-        elevation_m=SITE["elevation_m"],
+        req.pressure,
+        req.temperature,
+        req.humidity,
+        SITE["elevation_m"]
     )
+
     rho_ratio = rho / RHO_REF
     scale = engine_scale(req.engine)
 
-    masses = list(range(int(MIN_LIFTOFF_MASS), int(MAX_LIFTOFF_MASS) + 1))
-    apogee, apogee_hi, apogee_lo, probability = [], [], [], []
-
-    H_min = req.target_apogee - H_WINDOW
-    H_max = req.target_apogee + H_WINDOW
+    masses = list(range(553, 651))
+    apogee, hi, lo = [], [], []
 
     for m in masses:
         m_c = m - m0
         H = float(np.array([1.0, m_c, rho_ratio]) @ beta) * scale
-
-        z1 = (H_min - H) / sigma_H
-        z2 = (H_max - H) / sigma_H
-        P = float(norm.cdf(z2) - norm.cdf(z1))
-
         apogee.append(H)
-        apogee_hi.append(H + sigma_H)
-        apogee_lo.append(H - sigma_H)
-        probability.append(P)
+        hi.append(H + sigma_H)
+        lo.append(H - sigma_H)
 
     return {
         "mass": masses,
         "apogee": apogee,
-        "apogee_hi": apogee_hi,
-        "apogee_lo": apogee_lo,
-        "probability": probability,
+        "apogee_hi": hi,
+        "apogee_lo": lo,
         "H_target": req.target_apogee,
-        "H_window": H_WINDOW,
-        "confidence_req": 0.75,
+        "H_window": 25,
     }
 
+
+# ---------- Submit Flight Data ----------
+
+@app.post("/api/submit_flight")
+def submit_flight(data: FlightSubmitRequest):
+
+    if data.password != TEAM_PASSWORD:
+        raise HTTPException(status_code=403, detail="Invalid team password")
+
+    os.makedirs(DATA_DIR, exist_ok=True)
+    file_exists = os.path.exists(DATA_FILE)
+
+    with open(DATA_FILE, mode="a", newline="", encoding="utf-8") as f:
+        writer = csv.writer(f)
+
+        if not file_exists:
+            writer.writerow([
+                "timestamp",
+                "engine",
+                "liftoff_mass",
+                "apogee",
+                "flight_time",
+                "temperature",
+                "pressure",
+                "humidity"
+            ])
+
+        writer.writerow([
+            datetime.utcnow().isoformat(),
+            data.engine,
+            data.liftoff_mass,
+            data.apogee,
+            data.flight_time,
+            data.temperature,
+            data.pressure,
+            data.humidity
+        ])
+
+    return {
+        "status": "ok",
+        "message": "Flight data submitted successfully"
+    }
