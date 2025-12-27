@@ -7,7 +7,7 @@ Unauthorized copying, modification, or redistribution is prohibited.
 """
 
 import os
-import cs
+import csv
 from datetime import datetime
 
 import numpy as np
@@ -28,7 +28,6 @@ from solver.atmosphere import atmosphere_density
 # =========================================================
 
 app = FastAPI(title="Rocket Flight Solver")
-
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 
@@ -37,7 +36,6 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 # =========================================================
 
 TEAM_PASSWORD = os.getenv("TEAM_PASSWORD")
-
 if TEAM_PASSWORD is None:
     raise RuntimeError("TEAM_PASSWORD is not set")
 
@@ -61,13 +59,13 @@ class FlightSubmitRequest(BaseModel):
     password: str
 
     engine: str
-    liftoff_mass: float
-    apogee: float
-    flight_time: float
+    liftoff_mass: float   # g
+    apogee: float         # ft
+    flight_time: float    # s
 
-    temperature: float
-    pressure: float
-    humidity: float
+    temperature: float    # °C
+    pressure: float       # hPa
+    humidity: float       # %
 
 
 # =========================================================
@@ -76,14 +74,20 @@ class FlightSubmitRequest(BaseModel):
 
 @app.get("/")
 def index():
+    # 主页直接返回 static/index.html
     return FileResponse("static/index.html")
+
+
+@app.get("/health")
+def health():
+    # Render 用来判断服务是否起来了（你也可以自己打开 /health 看）
+    return {"status": "ok"}
 
 
 # ---------- Solver ----------
 
 @app.post("/api/solve")
 def solve(req: SolveRequest):
-
     if req.engine not in ENGINES:
         raise HTTPException(status_code=400, detail="Unknown engine")
 
@@ -109,6 +113,8 @@ def solve(req: SolveRequest):
 
 @app.post("/api/curve")
 def curve(req: SolveRequest):
+    if req.engine not in ENGINES:
+        raise HTTPException(status_code=400, detail="Unknown engine")
 
     rho = atmosphere_density(
         req.pressure,
@@ -116,7 +122,6 @@ def curve(req: SolveRequest):
         req.humidity,
         SITE["elevation_m"]
     )
-
     rho_ratio = rho / RHO_REF
     scale = engine_scale(req.engine)
 
@@ -144,15 +149,14 @@ def curve(req: SolveRequest):
 
 @app.post("/api/submit_flight")
 def submit_flight(data: FlightSubmitRequest):
-
     if data.password != TEAM_PASSWORD:
         raise HTTPException(status_code=403, detail="Invalid team password")
 
-    # --- basic validation ---
+    # basic validation
     if data.liftoff_mass <= 0 or data.apogee <= 0:
         raise HTTPException(status_code=400, detail="Invalid flight data")
 
-    if data.humidity < 0 or data.humidity > 100:
+    if not (0 <= data.humidity <= 100):
         raise HTTPException(status_code=400, detail="Invalid humidity")
 
     os.makedirs(DATA_DIR, exist_ok=True)
@@ -165,12 +169,12 @@ def submit_flight(data: FlightSubmitRequest):
             writer.writerow([
                 "timestamp",
                 "engine",
-                "liftoff_mass",
-                "apogee",
-                "flight_time",
-                "temperature",
-                "pressure",
-                "humidity"
+                "liftoff_mass_g",
+                "apogee_ft",
+                "flight_time_s",
+                "temperature_c",
+                "pressure_hpa",
+                "humidity_pct"
             ])
 
         writer.writerow([
@@ -184,7 +188,4 @@ def submit_flight(data: FlightSubmitRequest):
             data.humidity
         ])
 
-    return {
-        "status": "ok",
-        "message": "Flight data submitted successfully"
-    }
+    return {"status": "ok", "message": "Flight data submitted successfully"}
