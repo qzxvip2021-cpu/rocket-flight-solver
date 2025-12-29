@@ -3,8 +3,6 @@
 <head>
   <meta charset="UTF-8" />
   <title>Rocket Flight Solver</title>
-
-  <!-- 移动端适配 -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <!-- Plotly -->
@@ -12,126 +10,114 @@
 
   <style>
     body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI";
+      background: #f5f7fa;
       margin: 0;
-      padding: 16px;
-      background: #fafafa;
-      color: #222;
-    }
-
-    h2 {
-      margin-bottom: 12px;
+      padding: 0;
     }
 
     .container {
-      max-width: 720px;
-      margin: 0 auto;
+      max-width: 1100px;
+      margin: 40px auto;
+      padding: 0 20px;
     }
 
-    .form-group {
-      margin-bottom: 12px;
+    h1 {
+      margin-bottom: 20px;
+    }
+
+    .card {
+      background: white;
+      border-radius: 12px;
+      padding: 20px 24px;
+      margin-bottom: 20px;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.06);
+    }
+
+    /* ---------- Input ---------- */
+
+    .input-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 12px;
+      align-items: end;
     }
 
     label {
+      font-size: 12px;
+      color: #6b7280;
       display: block;
-      font-size: 14px;
       margin-bottom: 4px;
-      color: #555;
     }
 
-    input, select {
+    select, input {
       width: 100%;
-      padding: 10px;
-      font-size: 16px;
-      border: 1px solid #ccc;
+      padding: 8px;
       border-radius: 6px;
+      border: 1px solid #d1d5db;
+      font-size: 14px;
     }
 
     button {
-      width: 100%;
-      margin-top: 12px;
-      padding: 12px;
-      font-size: 16px;
+      padding: 10px 14px;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      font-weight: 600;
+    }
+
+    .btn-primary {
       background: #2563eb;
       color: white;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
     }
 
-    button:active {
-      background: #1e40af;
+    .btn-secondary {
+      background: #e5e7eb;
     }
 
-    #plot {
-      margin-top: 24px;
-      width: 100%;
-      min-height: 420px;
+    /* ---------- Result ---------- */
+
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
     }
 
-    /* ===== Result Card ===== */
-    #result-card {
-      margin-top: 20px;
+    .kpi {
+      text-align: center;
       padding: 16px;
-      border-radius: 12px;
-      background: white;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-      font-size: 15px;
-      line-height: 1.6;
-      display: none;
-    }
-
-    .card-title {
-      font-weight: 600;
-      margin-bottom: 8px;
-    }
-
-    .card-row {
-      display: flex;
-      justify-content: space-between;
-    }
-
-    .ok {
-      color: #16a34a;
-      font-weight: 600;
-    }
-
-    .warn {
-      color: #dc2626;
-      font-weight: 600;
-    }
-
-    /* ===== History ===== */
-    #history-card {
-      margin-top: 16px;
-      padding: 12px;
-      background: #f9fafb;
       border-radius: 10px;
-      font-size: 13px;
+      background: linear-gradient(180deg, #ffffff, #f2f4f8);
     }
 
-    .history-title {
-      font-weight: 600;
+    .kpi-label {
+      font-size: 13px;
+      color: #6b7280;
       margin-bottom: 6px;
     }
 
-    .history-item {
-      padding: 6px 0;
-      border-bottom: 1px solid #e5e7eb;
+    .kpi-value {
+      font-size: 28px;
+      font-weight: 700;
     }
 
-    .history-item:last-child {
-      border-bottom: none;
-    }
-
-    footer {
-      margin-top: 32px;
-      padding-top: 12px;
-      border-top: 1px solid #ddd;
+    .model-meta {
+      margin-top: 10px;
       font-size: 12px;
-      color: #777;
-      text-align: center;
-      line-height: 1.6;
+      color: #6b7280;
+      text-align: right;
+    }
+
+    /* ---------- Plot ---------- */
+
+    #plot {
+      height: 420px;
+    }
+
+    .hint {
+      font-size: 12px;
+      color: #6b7280;
+      margin-top: 8px;
     }
   </style>
 </head>
@@ -139,58 +125,92 @@
 <body>
 <div class="container">
 
-  <h2>🚀 Rocket Flight Solver</h2>
+  <h1>🚀 Rocket Flight Solver</h1>
 
-  <div class="form-group">
-    <label>Engine</label>
-    <select id="engine">
-      <option>F20-4W</option>
-      <option>F23-4FJ</option>
-      <option>F42-4T</option>
-      <option>F52-8C</option>
-    </select>
+  <!-- ================= Input ================= -->
+  <div class="card">
+    <div class="input-grid">
+
+      <div>
+        <label>Engine</label>
+        <select id="engine">
+          <option>F20-4W</option>
+        </select>
+      </div>
+
+      <div>
+        <label>Temperature (°C)</label>
+        <input id="temp" value="20">
+      </div>
+
+      <div>
+        <label>Pressure (hPa)</label>
+        <input id="pressure" value="1015">
+      </div>
+
+      <div>
+        <label>Humidity (%)</label>
+        <input id="humidity" value="50">
+      </div>
+
+      <div>
+        <label>Target Apogee (ft)</label>
+        <input id="target" value="750">
+      </div>
+
+    </div>
+
+    <div style="margin-top: 16px;">
+      <button class="btn-primary" id="compute-btn" onclick="run()">Compute</button>
+      <button class="btn-secondary" onclick="submitFlight()">Submit Flight Data</button>
+    </div>
   </div>
 
-  <div class="form-group">
-    <label>Temperature (°C)</label>
-    <input id="temp" type="number" value="20">
+  <!-- ================= Result ================= -->
+  <div class="card">
+    <div class="kpi-grid">
+      <div class="kpi">
+        <div class="kpi-label">Recommended Mass</div>
+        <div class="kpi-value" id="kpi-mass">–</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Predicted Apogee</div>
+        <div class="kpi-value" id="kpi-apogee">–</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Confidence</div>
+        <div class="kpi-value" id="kpi-confidence">–</div>
+      </div>
+    </div>
+
+    <div class="hint">
+      Confidence = probability that apogee falls within ±25 ft of target.
+    </div>
+
+    <!-- ② 模型信息（若后端有则显示） -->
+    <div class="model-meta" id="model-meta"></div>
   </div>
 
-  <div class="form-group">
-    <label>Pressure (hPa)</label>
-    <input id="pressure" type="number" value="1015">
+  <!-- ================= Plot ================= -->
+  <div class="card">
+    <div id="plot"></div>
   </div>
-
-  <div class="form-group">
-    <label>Humidity (%)</label>
-    <input id="humidity" type="number" value="50">
-  </div>
-
-  <div class="form-group">
-    <label>Target apogee (ft)</label>
-    <input id="target" type="number" value="750">
-  </div>
-
-  <button onclick="run()">Compute</button>
-
-  <!-- Result -->
-  <div id="result-card"></div>
-
-  <!-- History -->
-  <div id="history-card"></div>
-
-  <!-- Plot -->
-  <div id="plot"></div>
-
-  <footer>
-    © 2025 George Qiao. All rights reserved.<br>
-    Rocket Flight Solver — for educational & competition use only.
-  </footer>
 
 </div>
 
 <script>
+function confidenceColor(p) {
+  if (p > 80) return "#16a34a";
+  if (p > 60) return "#2563eb";
+  if (p > 40) return "#f59e0b";
+  return "#dc2626";
+}
+
 async function run() {
+  const btn = document.getElementById("compute-btn");
+  btn.disabled = true;
+  btn.innerText = "Computing…";
+
   const payload = {
     engine: engine.value,
     temperature: +temp.value,
@@ -199,66 +219,131 @@ async function run() {
     target_apogee: +target.value
   };
 
-  // ===== fetch curve =====
-  const curveResp = await fetch("/api/curve", {
+  const curve = await (await fetch("/api/curve", {
     method: "POST",
     headers: {"Content-Type": "application/json"},
     body: JSON.stringify(payload)
-  });
+  })).json();
 
-  if (!curveResp.ok) {
-    alert("Curve API error");
-    return;
-  }
-
-  const curve = await curveResp.json();
-
-  // ===== fetch solve =====
-  const solveResp = await fetch("/api/solve", {
+  const sol = await (await fetch("/api/solve", {
     method: "POST",
     headers: {"Content-Type": "application/json"},
     body: JSON.stringify(payload)
-  });
+  })).json();
 
-  if (!solveResp.ok) {
-    alert("Solve API error");
-    return;
-  }
+  window.lastResult = sol;
 
-  const sol = await solveResp.json();
+  /* ================= ① ±σ 区间 ================= */
+  const bandX = [...curve.mass, ...curve.mass.slice().reverse()];
+  const bandY = [...curve.apogee_hi, ...curve.apogee_lo.slice().reverse()];
 
-  // ===== plot =====
   Plotly.newPlot("plot", [
-    { x: curve.mass, y: curve.apogee, mode: "lines", name: "Predicted apogee" },
-    { x: curve.mass, y: curve.apogee_hi, line:{width:0}, showlegend:false },
-    { x: curve.mass, y: curve.apogee_lo, fill:"tonexty", name:"±1σ confidence" },
-    { x: [sol.mass], y: [sol.H_mean], mode:"markers", name:"Recommended mass" }
+    {
+      x: curve.mass,
+      y: curve.apogee,
+      mode: "lines",
+      name: "Apogee Curve"
+    },
+    {
+      x: bandX,
+      y: bandY,
+      fill: "toself",
+      fillcolor: "rgba(59,130,246,0.15)",
+      line: { width: 0 },
+      name: "±σ Uncertainty"
+    },
+    {
+      x: curve.mass,
+      y: curve.mass.map(() => curve.H_target),
+      mode: "lines",
+      line: { dash: "dash", color: "red" },
+      name: "Target Apogee"
+    },
+    {
+      x: [sol.mass],
+      y: [sol.H_mean],
+      mode: "markers",
+      marker: { size: 12, color: "#16a34a" },
+      name: "Recommended"
+    }
   ], {
-    margin: { t: 40, l: 50, r: 20, b: 50 },
-    xaxis: { title: "Liftoff mass (g)" },
+    title: "Apogee vs Liftoff Mass",
+    xaxis: { title: "Liftoff Mass (g)" },
     yaxis: { title: "Apogee (ft)" }
   });
 
-  // ===== result card =====
-  const card = document.getElementById("result-card");
-  card.style.display = "block";
+  document.getElementById("kpi-mass").innerText =
+    sol.mass.toFixed(1) + " g";
 
-  const meets = sol.confidence >= 75;
+  document.getElementById("kpi-apogee").innerText =
+    sol.H_mean.toFixed(1) + " ft";
 
-  card.innerHTML = `
-    <div class="card-title">📊 Computation Result</div>
-    <div class="card-row"><span>Recommended mass</span><strong>${sol.mass.toFixed(1)} g</strong></div>
-    <div class="card-row"><span>Predicted apogee</span><strong>${sol.H_mean.toFixed(1)} ft</strong></div>
-    <div class="card-row"><span>Confidence</span><strong>${sol.confidence.toFixed(1)} %</strong></div>
-    <div class="card-row"><span>Flight time</span><strong>${sol.flight_time?.toFixed(2) ?? "N/A"} s</strong></div>
-    <div style="margin-top:8px" class="${meets ? "ok" : "warn"}">
-      ${meets ? "✔ Meets 75% confidence requirement" : "⚠ Below confidence requirement"}
-    </div>
-  `;
+  const c = sol.confidence;
+  const confEl = document.getElementById("kpi-confidence");
+  confEl.innerText = c.toFixed(1) + " %";
+  confEl.style.color = confidenceColor(c);
+
+  /* ================= ② 模型信息（若存在） ================= */
+  try {
+    const info = await (await fetch("/api/model_info")).json();
+    document.getElementById("model-meta").innerText =
+      `Model ${info.engine} · n=${info.meta?.n_height ?? "?"} · σ=${info.sigma_H?.toFixed(1) ?? "?"} ft · v${info.version}`;
+  } catch {
+    document.getElementById("model-meta").innerText =
+      "Model information unavailable";
+  }
+
+  btn.disabled = false;
+  btn.innerText = "Compute";
+}
+
+/* ================= ④ 提交前确认弹窗 ================= */
+async function submitFlight() {
+  if (!window.lastResult) {
+    alert("Please compute first");
+    return;
+  }
+
+  const summary = `
+Engine: ${engine.value}
+Mass: ${window.lastResult.mass.toFixed(1)} g
+Apogee: ${window.lastResult.H_mean.toFixed(1)} ft
+Confidence: ${window.lastResult.confidence.toFixed(1)} %
+`;
+
+  if (!confirm("Submit this flight data?\n\n" + summary)) {
+    return;
+  }
+
+  const password = prompt("Enter team password:");
+  if (!password) return;
+
+  const payload = {
+    password: password,
+    engine: engine.value,
+    liftoff_mass: window.lastResult.mass,
+    apogee: window.lastResult.H_mean,
+    flight_time: window.lastResult.flight_time,
+    temperature: +temp.value,
+    pressure: +pressure.value,
+    humidity: +humidity.value
+  };
+
+  const resp = await fetch("/api/submit_flight", {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify(payload)
+  });
+
+  if (!resp.ok) {
+    const err = await resp.json();
+    alert("Submit failed: " + err.detail);
+    return;
+  }
+
+  alert("✅ Submitted for review");
 }
 </script>
 
-
 </body>
 </html>
-
