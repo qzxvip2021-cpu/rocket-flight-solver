@@ -16,12 +16,17 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
+from solver.model_store import get_model, set_model, get_model_info
+from solver.train_from_excel import train_model_from_excel
+
+
 from solver.solver import solve_mass
 from solver.constants import SITE
 from solver.engines import ENGINES, engine_scale
-from solver.models import beta, sigma_H, m0, beta_T, RHO_REF
+from solver.models import RHO_REF
 from solver.atmosphere import atmosphere_density
 
+from fastapi import Body
 
 # =========================================================
 # App
@@ -39,8 +44,14 @@ TEAM_PASSWORD = os.getenv("TEAM_PASSWORD")
 if TEAM_PASSWORD is None:
     raise RuntimeError("TEAM_PASSWORD is not set")
 
+ARC_EXCEL_PATH = os.getenv(
+    "ARC_EXCEL_PATH",
+    r"C:\Users\missz\Desktop\ARC_flights.xlsx"
+)
+
 DATA_DIR = "data"
-DATA_FILE = os.path.join(DATA_DIR, "flights.csv")
+PENDING_FILE = os.path.join(DATA_DIR, "pending_flights.csv")
+FINAL_FILE = os.path.join(DATA_DIR, "flights.csv")
 
 
 # =========================================================
@@ -71,6 +82,14 @@ class FlightSubmitRequest(BaseModel):
 # =========================================================
 # Routes
 # =========================================================
+@app.on_event("startup")
+def load_model_on_startup():
+    model = train_model_from_excel(
+        excel_path=ARC_EXCEL_PATH,
+        engine_name="F20-4W"
+    )
+    set_model(model)
+
 
 @app.get("/")
 def index():
@@ -83,6 +102,31 @@ def health():
     # Render 用来判断服务是否起来了（你也可以自己打开 /health 看）
     return {"status": "ok"}
 
+@app.post("/api/admin/reload_model")
+def reload_model(payload: dict = Body(...)):
+    password = payload.get("password", "")
+    if password != TEAM_PASSWORD:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+    engine = payload.get("engine", "F20-4W")
+
+    try:
+        new_model = train_model_from_excel(
+            excel_path=ARC_EXCEL_PATH,
+            engine_name=engine
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Model reload failed: {str(e)}"
+        )
+
+    set_model(new_model)
+
+    return {
+        "status": "ok",
+        "model": get_model_info(),
+    }
 
 # ---------- Solver ----------
 
@@ -98,15 +142,24 @@ def solve(req: SolveRequest):
         "elevation": SITE["elevation_m"],
     }
 
+    try:
+        model = get_model()
+    except RuntimeError:
+        raise HTTPException(
+            status_code=503,
+            detail="Model not loaded. Please try again later."
+    )
+
     return solve_mass(
         weather=weather,
         target_apogee=req.target_apogee,
-        beta=beta,
-        sigma_H=sigma_H,
-        m0=m0,
-        beta_T=beta_T,
+        beta=model.beta,
+        sigma_H=model.sigma_H,
+        m0=model.m0,
+        beta_T=model.beta_T,
         engine_name=req.engine,
     )
+
 
 
 # ---------- Curve ----------
@@ -128,12 +181,19 @@ def curve(req: SolveRequest):
     masses = list(range(553, 651))
     apogee, hi, lo = [], [], []
 
+    try:
+        model = get_model()
+    except RuntimeError:
+        raise HTTPException(
+            status_code=503,
+            detail="Model not loaded. Please try again later."
+    )
     for m in masses:
-        m_c = m - m0
-        H = float(np.array([1.0, m_c, rho_ratio]) @ beta) * scale
+        m_c = m - model.m0
+        H = float(np.array([1.0, m_c, rho_ratio]) @ model.beta) * scale
         apogee.append(H)
-        hi.append(H + sigma_H)
-        lo.append(H - sigma_H)
+        hi.append(H + model.sigma_H)
+        lo.append(H - model.sigma_H)
 
     return {
         "mass": masses,
@@ -149,32 +209,37 @@ def curve(req: SolveRequest):
 
 @app.post("/api/submit_flight")
 def submit_flight(data: FlightSubmitRequest):
+
+    # ---------- 1. 密码校验 ----------
     if data.password != TEAM_PASSWORD:
         raise HTTPException(status_code=403, detail="Invalid team password")
 
-    # basic validation
+    # ---------- 2. 基本校验 ----------
     if data.liftoff_mass <= 0 or data.apogee <= 0:
         raise HTTPException(status_code=400, detail="Invalid flight data")
 
     if not (0 <= data.humidity <= 100):
         raise HTTPException(status_code=400, detail="Invalid humidity")
 
+    # ---------- 3. 确保目录 ----------
     os.makedirs(DATA_DIR, exist_ok=True)
-    file_exists = os.path.exists(DATA_FILE)
+    file_exists = os.path.exists(PENDING_FILE)
 
-    with open(DATA_FILE, mode="a", newline="", encoding="utf-8") as f:
+    # ---------- 4. 写入 pending_flights.csv ----------
+    with open(PENDING_FILE, mode="a", newline="", encoding="utf-8") as f:
         writer = csv.writer(f)
 
         if not file_exists:
             writer.writerow([
                 "timestamp",
                 "engine",
-                "liftoff_mass_g",
-                "apogee_ft",
-                "flight_time_s",
-                "temperature_c",
-                "pressure_hpa",
-                "humidity_pct"
+                "liftoff_mass",
+                "apogee",
+                "flight_time",
+                "temperature",
+                "pressure",
+                "humidity",
+                "status"
             ])
 
         writer.writerow([
@@ -185,7 +250,11 @@ def submit_flight(data: FlightSubmitRequest):
             data.flight_time,
             data.temperature,
             data.pressure,
-            data.humidity
+            data.humidity,
+            "pending"
         ])
 
-    return {"status": "ok", "message": "Flight data submitted successfully"}
+    return {
+        "status": "ok",
+        "message": "Flight data submitted for review"
+    }
