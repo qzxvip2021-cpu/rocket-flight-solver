@@ -80,11 +80,16 @@ class FlightSubmitRequest(BaseModel):
 
 @app.on_event("startup")
 def load_model_on_startup():
-    model = train_model_from_excel(
-        excel_path=ARC_EXCEL_PATH,
-        engine_name="F20-4W"
-    )
-    set_model(model)
+    try:
+        model = train_model_from_excel(
+            excel_path=ARC_EXCEL_PATH,
+            engine_name="F20-4W"
+        )
+        set_model(model)
+        print("Model loaded successfully")
+    except Exception as e:
+        print("⚠️ Model load failed:", e)
+
 
 
 # =========================================================
@@ -283,3 +288,4 @@ def submit_flight(data: FlightSubmitRequest):
         "status": "ok",
         "message": "Flight data submitted for review"
     }
+
