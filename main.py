@@ -46,9 +46,8 @@ if TEAM_PASSWORD is None:
 
 ARC_EXCEL_PATH = os.getenv(
     "ARC_EXCEL_PATH",
-    r"C:\Users\missz\Desktop\ARC_flights.xlsx"
+    os.path.join("data", "ARC_flights.xlsx")
 )
-
 DATA_DIR = "data"
 PENDING_FILE = os.path.join(DATA_DIR, "pending_flights.csv")
 FINAL_FILE = os.path.join(DATA_DIR, "flights.csv")
@@ -258,3 +257,4 @@ def submit_flight(data: FlightSubmitRequest):
         "status": "ok",
         "message": "Flight data submitted for review"
     }
+
