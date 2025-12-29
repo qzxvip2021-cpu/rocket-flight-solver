@@ -11,22 +11,19 @@ import csv
 from datetime import datetime
 
 import numpy as np
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Body
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from solver.model_store import get_model, set_model, get_model_info
 from solver.train_from_excel import train_model_from_excel
-
-
 from solver.solver import solve_mass
 from solver.constants import SITE
 from solver.engines import ENGINES, engine_scale
 from solver.models import RHO_REF
 from solver.atmosphere import atmosphere_density
 
-from fastapi import Body
 
 # =========================================================
 # App
@@ -48,6 +45,7 @@ ARC_EXCEL_PATH = os.getenv(
     "ARC_EXCEL_PATH",
     os.path.join("data", "ARC_flights.xlsx")
 )
+
 DATA_DIR = "data"
 PENDING_FILE = os.path.join(DATA_DIR, "pending_flights.csv")
 FINAL_FILE = os.path.join(DATA_DIR, "flights.csv")
@@ -67,20 +65,19 @@ class SolveRequest(BaseModel):
 
 class FlightSubmitRequest(BaseModel):
     password: str
-
     engine: str
     liftoff_mass: float   # g
     apogee: float         # ft
     flight_time: float    # s
-
     temperature: float    # °C
     pressure: float       # hPa
     humidity: float       # %
 
 
 # =========================================================
-# Routes
+# Startup
 # =========================================================
+
 @app.on_event("startup")
 def load_model_on_startup():
     model = train_model_from_excel(
@@ -90,16 +87,42 @@ def load_model_on_startup():
     set_model(model)
 
 
+# =========================================================
+# Routes
+# =========================================================
+
 @app.get("/")
 def index():
-    # 主页直接返回 static/index.html
     return FileResponse("static/index.html")
 
 
 @app.get("/health")
 def health():
-    # Render 用来判断服务是否起来了（你也可以自己打开 /health 看）
     return {"status": "ok"}
+
+
+# =========================================================
+# 🔍 Model Info (NEW, READ-ONLY)
+# =========================================================
+
+@app.get("/api/model_info")
+def model_info():
+    """
+    Expose current loaded model metadata for UI / debugging.
+    Read-only, no authentication required.
+    """
+    try:
+        return get_model_info()
+    except RuntimeError:
+        raise HTTPException(
+            status_code=503,
+            detail="Model not loaded"
+        )
+
+
+# =========================================================
+# Admin
+# =========================================================
 
 @app.post("/api/admin/reload_model")
 def reload_model(payload: dict = Body(...)):
@@ -127,7 +150,10 @@ def reload_model(payload: dict = Body(...)):
         "model": get_model_info(),
     }
 
-# ---------- Solver ----------
+
+# =========================================================
+# Solver
+# =========================================================
 
 @app.post("/api/solve")
 def solve(req: SolveRequest):
@@ -147,7 +173,7 @@ def solve(req: SolveRequest):
         raise HTTPException(
             status_code=503,
             detail="Model not loaded. Please try again later."
-    )
+        )
 
     return solve_mass(
         weather=weather,
@@ -160,13 +186,22 @@ def solve(req: SolveRequest):
     )
 
 
-
-# ---------- Curve ----------
+# =========================================================
+# Curve
+# =========================================================
 
 @app.post("/api/curve")
 def curve(req: SolveRequest):
     if req.engine not in ENGINES:
         raise HTTPException(status_code=400, detail="Unknown engine")
+
+    try:
+        model = get_model()
+    except RuntimeError:
+        raise HTTPException(
+            status_code=503,
+            detail="Model not loaded. Please try again later."
+        )
 
     rho = atmosphere_density(
         req.pressure,
@@ -180,13 +215,6 @@ def curve(req: SolveRequest):
     masses = list(range(553, 651))
     apogee, hi, lo = [], [], []
 
-    try:
-        model = get_model()
-    except RuntimeError:
-        raise HTTPException(
-            status_code=503,
-            detail="Model not loaded. Please try again later."
-    )
     for m in masses:
         m_c = m - model.m0
         H = float(np.array([1.0, m_c, rho_ratio]) @ model.beta) * scale
@@ -204,27 +232,25 @@ def curve(req: SolveRequest):
     }
 
 
-# ---------- Submit Flight Data ----------
+# =========================================================
+# Submit Flight Data
+# =========================================================
 
 @app.post("/api/submit_flight")
 def submit_flight(data: FlightSubmitRequest):
 
-    # ---------- 1. 密码校验 ----------
     if data.password != TEAM_PASSWORD:
         raise HTTPException(status_code=403, detail="Invalid team password")
 
-    # ---------- 2. 基本校验 ----------
     if data.liftoff_mass <= 0 or data.apogee <= 0:
         raise HTTPException(status_code=400, detail="Invalid flight data")
 
     if not (0 <= data.humidity <= 100):
         raise HTTPException(status_code=400, detail="Invalid humidity")
 
-    # ---------- 3. 确保目录 ----------
     os.makedirs(DATA_DIR, exist_ok=True)
     file_exists = os.path.exists(PENDING_FILE)
 
-    # ---------- 4. 写入 pending_flights.csv ----------
     with open(PENDING_FILE, mode="a", newline="", encoding="utf-8") as f:
         writer = csv.writer(f)
 
@@ -257,4 +283,3 @@ def submit_flight(data: FlightSubmitRequest):
         "status": "ok",
         "message": "Flight data submitted for review"
     }
-
