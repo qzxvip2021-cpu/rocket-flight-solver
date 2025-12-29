@@ -3,3 +3,4 @@ uvicorn
 numpy
 pandas
 scipy
+openpyxl>=3.1
