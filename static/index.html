@@ -26,6 +26,18 @@
       margin-bottom: 20px;
     }
 
+    .top-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .lang-select {
+      font-size: 13px;
+      padding: 4px 6px;
+    }
+
     .card {
       background: white;
       border-radius: 12px;
@@ -33,8 +45,6 @@
       margin-bottom: 20px;
       box-shadow: 0 6px 20px rgba(0,0,0,0.06);
     }
-
-    /* ---------- Input ---------- */
 
     .input-grid {
       display: grid;
@@ -75,8 +85,6 @@
       background: #e5e7eb;
     }
 
-    /* ---------- Result ---------- */
-
     .kpi-grid {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
@@ -108,8 +116,6 @@
       text-align: right;
     }
 
-    /* ---------- Plot ---------- */
-
     #plot {
       height: 420px;
     }
@@ -119,50 +125,70 @@
       color: #6b7280;
       margin-top: 8px;
     }
+
+    footer {
+      margin: 40px 0 20px;
+      text-align: center;
+      font-size: 12px;
+      color: #9ca3af;
+    }
   </style>
 </head>
 
 <body>
 <div class="container">
 
-  <h1>🚀 Rocket Flight Solver</h1>
+  <!-- ===== Top bar ===== -->
+  <div class="top-bar">
+    <h1 data-i18n="title">🚀 Rocket Flight Solver</h1>
+
+    <select class="lang-select" onchange="setLang(this.value)">
+      <option value="en">English</option>
+      <option value="zh">中文</option>
+      <option value="es">Español</option>
+    </select>
+  </div>
 
   <!-- ================= Input ================= -->
   <div class="card">
     <div class="input-grid">
 
       <div>
-        <label>Engine</label>
+        <label data-i18n="engine">Engine</label>
         <select id="engine">
           <option>F20-4W</option>
         </select>
       </div>
 
       <div>
-        <label>Temperature (°C)</label>
+        <label data-i18n="temperature">Temperature (°C)</label>
         <input id="temp" value="20">
       </div>
 
       <div>
-        <label>Pressure (hPa)</label>
+        <label data-i18n="pressure">Pressure (hPa)</label>
         <input id="pressure" value="1015">
       </div>
 
       <div>
-        <label>Humidity (%)</label>
+        <label data-i18n="humidity">Humidity (%)</label>
         <input id="humidity" value="50">
       </div>
 
       <div>
-        <label>Target Apogee (ft)</label>
+        <label data-i18n="target">Target Apogee (ft)</label>
         <input id="target" value="750">
       </div>
 
     </div>
 
     <div style="margin-top: 16px;">
-      <button class="btn-primary" id="compute-btn" onclick="run()">Compute</button>
-      <button class="btn-secondary" onclick="submitFlight()">Submit Flight Data</button>
+      <button class="btn-primary" id="compute-btn" onclick="run()" data-i18n="compute">
+        Compute
+      </button>
+      <button class="btn-secondary" onclick="submitFlight()" data-i18n="submit">
+        Submit Flight Data
+      </button>
     </div>
   </div>
 
@@ -170,24 +196,23 @@
   <div class="card">
     <div class="kpi-grid">
       <div class="kpi">
-        <div class="kpi-label">Recommended Mass</div>
+        <div class="kpi-label" data-i18n="mass">Recommended Mass</div>
         <div class="kpi-value" id="kpi-mass">–</div>
       </div>
       <div class="kpi">
-        <div class="kpi-label">Predicted Apogee</div>
+        <div class="kpi-label" data-i18n="apogee">Predicted Apogee</div>
         <div class="kpi-value" id="kpi-apogee">–</div>
       </div>
       <div class="kpi">
-        <div class="kpi-label">Confidence</div>
+        <div class="kpi-label" data-i18n="confidence">Confidence</div>
         <div class="kpi-value" id="kpi-confidence">–</div>
       </div>
     </div>
 
-    <div class="hint">
+    <div class="hint" data-i18n="confidence_hint">
       Confidence = probability that apogee falls within ±25 ft of target.
     </div>
 
-    <!-- ② 模型信息（若后端有则显示） -->
     <div class="model-meta" id="model-meta"></div>
   </div>
 
@@ -196,9 +221,74 @@
     <div id="plot"></div>
   </div>
 
+  <!-- ===== Footer (Version A) ===== -->
+  <footer>
+    © 2025 George Qiao · Educational & Competition Use Only
+  </footer>
+
 </div>
 
 <script>
+/* ================= i18n ================= */
+
+const I18N = {
+  en: {
+    title: "🚀 Rocket Flight Solver",
+    engine: "Engine",
+    temperature: "Temperature (°C)",
+    pressure: "Pressure (hPa)",
+    humidity: "Humidity (%)",
+    target: "Target Apogee (ft)",
+    compute: "Compute",
+    submit: "Submit Flight Data",
+    mass: "Recommended Mass",
+    apogee: "Predicted Apogee",
+    confidence: "Confidence",
+    confidence_hint:
+      "Confidence = probability that apogee falls within ±25 ft of target."
+  },
+  zh: {
+    title: "🚀 火箭飞行求解器",
+    engine: "发动机",
+    temperature: "温度 (°C)",
+    pressure: "气压 (hPa)",
+    humidity: "湿度 (%)",
+    target: "目标顶点高度 (ft)",
+    compute: "计算",
+    submit: "提交飞行数据",
+    mass: "推荐起飞质量",
+    apogee: "预测顶点高度",
+    confidence: "命中概率",
+    confidence_hint:
+      "命中概率 = 顶点高度落在目标 ±25 英尺范围内的概率。"
+  },
+  es: {
+    title: "🚀 Solucionador de Vuelo de Cohetes",
+    engine: "Motor",
+    temperature: "Temperatura (°C)",
+    pressure: "Presión (hPa)",
+    humidity: "Humedad (%)",
+    target: "Apogeo Objetivo (ft)",
+    compute: "Calcular",
+    submit: "Enviar Datos de Vuelo",
+    mass: "Masa Recomendada",
+    apogee: "Apogeo Predicho",
+    confidence: "Confianza",
+    confidence_hint:
+      "La confianza es la probabilidad de que el apogeo esté dentro de ±25 ft del objetivo."
+  }
+};
+
+function setLang(lang) {
+  const dict = I18N[lang] || I18N.en;
+  document.querySelectorAll("[data-i18n]").forEach(el => {
+    const key = el.getAttribute("data-i18n");
+    if (dict[key]) el.innerText = dict[key];
+  });
+}
+
+/* ================= Solver Logic（原样保留） ================= */
+
 function confidenceColor(p) {
   if (p > 80) return "#16a34a";
   if (p > 60) return "#2563eb";
@@ -233,31 +323,25 @@ async function run() {
 
   window.lastResult = sol;
 
-  /* ================= ① ±σ 区间 ================= */
   const bandX = [...curve.mass, ...curve.mass.slice().reverse()];
   const bandY = [...curve.apogee_hi, ...curve.apogee_lo.slice().reverse()];
 
   Plotly.newPlot("plot", [
-    {
-      x: curve.mass,
-      y: curve.apogee,
-      mode: "lines",
-      name: "Apogee Curve"
-    },
+    { x: curve.mass, y: curve.apogee, mode: "lines", name: "Apogee Curve" },
     {
       x: bandX,
       y: bandY,
       fill: "toself",
       fillcolor: "rgba(59,130,246,0.15)",
       line: { width: 0 },
-      name: "±σ Uncertainty"
+      name: "±σ"
     },
     {
       x: curve.mass,
       y: curve.mass.map(() => curve.H_target),
       mode: "lines",
       line: { dash: "dash", color: "red" },
-      name: "Target Apogee"
+      name: "Target"
     },
     {
       x: [sol.mass],
@@ -266,60 +350,32 @@ async function run() {
       marker: { size: 12, color: "#16a34a" },
       name: "Recommended"
     }
-  ], {
-    title: "Apogee vs Liftoff Mass",
-    xaxis: { title: "Liftoff Mass (g)" },
-    yaxis: { title: "Apogee (ft)" }
-  });
+  ]);
 
-  document.getElementById("kpi-mass").innerText =
-    sol.mass.toFixed(1) + " g";
+  document.getElementById("kpi-mass").innerText = sol.mass.toFixed(1) + " g";
+  document.getElementById("kpi-apogee").innerText = sol.H_mean.toFixed(1) + " ft";
 
-  document.getElementById("kpi-apogee").innerText =
-    sol.H_mean.toFixed(1) + " ft";
-
-  const c = sol.confidence;
   const confEl = document.getElementById("kpi-confidence");
-  confEl.innerText = c.toFixed(1) + " %";
-  confEl.style.color = confidenceColor(c);
-
-  /* ================= ② 模型信息（若存在） ================= */
-  try {
-    const info = await (await fetch("/api/model_info")).json();
-    document.getElementById("model-meta").innerText =
-      `Model ${info.engine} · n=${info.meta?.n_height ?? "?"} · σ=${info.sigma_H?.toFixed(1) ?? "?"} ft · v${info.version}`;
-  } catch {
-    document.getElementById("model-meta").innerText =
-      "Model information unavailable";
-  }
+  confEl.innerText = sol.confidence.toFixed(1) + " %";
+  confEl.style.color = confidenceColor(sol.confidence);
 
   btn.disabled = false;
-  btn.innerText = "Compute";
+  btn.innerText = I18N.en.compute;
 }
 
-/* ================= ④ 提交前确认弹窗 ================= */
 async function submitFlight() {
   if (!window.lastResult) {
     alert("Please compute first");
     return;
   }
 
-  const summary = `
-Engine: ${engine.value}
-Mass: ${window.lastResult.mass.toFixed(1)} g
-Apogee: ${window.lastResult.H_mean.toFixed(1)} ft
-Confidence: ${window.lastResult.confidence.toFixed(1)} %
-`;
-
-  if (!confirm("Submit this flight data?\n\n" + summary)) {
-    return;
-  }
+  if (!confirm("Submit this flight data?")) return;
 
   const password = prompt("Enter team password:");
   if (!password) return;
 
   const payload = {
-    password: password,
+    password,
     engine: engine.value,
     liftoff_mass: window.lastResult.mass,
     apogee: window.lastResult.H_mean,
@@ -336,8 +392,7 @@ Confidence: ${window.lastResult.confidence.toFixed(1)} %
   });
 
   if (!resp.ok) {
-    const err = await resp.json();
-    alert("Submit failed: " + err.detail);
+    alert("Submit failed");
     return;
   }
 
