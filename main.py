@@ -262,7 +262,7 @@ def curve(
     )
 
     masses = list(range(553, 651))
-    apogee, hi, lo = [], [], []
+    apogee, hi, lo, conf = [], [], [], []
 
     for m in masses:
         m_c = m - model.m0
@@ -374,3 +374,4 @@ def final_solve(
 
     log_access(request, "/api/final_solve", req.engine, "final", True, member)
     return result
+
