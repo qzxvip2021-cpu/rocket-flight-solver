@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Rocket Flight Solver</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- Plotly -->
+  <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+
+  <style>
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI";
+      background: #f5f7fa;
+      margin: 0;
+      padding: 0;
+    }
+
+    .container {
+      max-width: 1100px;
+      margin: 40px auto;
+      padding: 0 20px;
+    }
+
+    h1 { margin-bottom: 12px; }
+
+    .top-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .lang-select { font-size: 13px; padding: 4px 6px; }
+
+    .card {
+      background: white;
+      border-radius: 12px;
+      padding: 20px 24px;
+      margin-bottom: 20px;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.06);
+    }
+
+    .input-grid {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 12px;
+      align-items: end;
+    }
+
+    label {
+      font-size: 12px;
+      color: #6b7280;
+      display: block;
+      margin-bottom: 4px;
+    }
+
+    select, input {
+      width: 100%;
+      padding: 8px;
+      border-radius: 6px;
+      border: 1px solid #d1d5db;
+      font-size: 14px;
+    }
+
+    button {
+      padding: 10px 14px;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      font-weight: 600;
+    }
+
+    .btn-primary { background: #2563eb; color: white; }
+
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 16px;
+    }
+
+    .kpi {
+      text-align: center;
+      padding: 14px;
+      border-radius: 10px;
+      background: linear-gradient(180deg, #ffffff, #f2f4f8);
+    }
+
+    .kpi-label {
+      font-size: 12px;
+      color: #6b7280;
+      margin-bottom: 6px;
+    }
+
+    .kpi-value { font-size: 22px; font-weight: 700; }
+
+    #plot { height: 420px; }
+
+    footer {
+      margin: 40px 0 20px;
+      text-align: center;
+      font-size: 12px;
+      color: #9ca3af;
+    }
+  </style>
+</head>
+
+<body>
+<div class="container">
+
+  <div class="top-bar">
+    <h1>🚀 Rocket Flight Solver</h1>
+    <select class="lang-select" disabled>
+      <option>English</option>
+    </select>
+  </div>
+
+  <div class="card">
+    <div class="input-grid">
+      <div>
+        <label>Engine</label>
+        <select id="engine">
+          <option>F20-4W</option>
+          <option>F20-7W</option>
+          <option>F52-9C</option>
+          <option>F23-4FJ</option>
+          <option>F42-4T</option>
+        </select>
+      </div>
+
+      <div><label>Temperature (°C)</label><input id="temp" value="20"></div>
+      <div><label>Pressure (hPa)</label><input id="pressure" value="1015"></div>
+      <div><label>Humidity (%)</label><input id="humidity" value="50"></div>
+      <div><label>Target Apogee (ft)</label><input id="target" value="750"></div>
+
+      <div>
+        <label>Mode</label>
+        <select id="mode">
+          <option value="normal">Normal (Practice)</option>
+          <option value="final">Final (ARC Finals)</option>
+        </select>
+      </div>
+    </div>
+
+    <div style="margin-top:16px;">
+      <button class="btn-primary" id="compute-btn" onclick="run()">Compute</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="kpi-grid">
+      <div class="kpi"><div class="kpi-label">Mass</div><div class="kpi-value" id="kpi-mass">–</div></div>
+      <div class="kpi"><div class="kpi-label">Apogee</div><div class="kpi-value" id="kpi-apogee">–</div></div>
+      <div class="kpi"><div class="kpi-label">Flight Time</div><div class="kpi-value" id="kpi-time">–</div></div>
+      <div class="kpi"><div class="kpi-label">Height Score</div><div class="kpi-value" id="kpi-hscore">–</div></div>
+      <div class="kpi"><div class="kpi-label">Time Score</div><div class="kpi-value" id="kpi-tscore">–</div></div>
+      <div class="kpi"><div class="kpi-label">Total</div><div class="kpi-value" id="kpi-total">–</div></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div id="plot"></div>
+  </div>
+
+  <footer>© 2025 George Qiao · Educational & Competition Use Only</footer>
+
+</div>
+
+<script>
+const TEAM_KEY = prompt("Enter team key:");
+const TEAM_MEMBER = prompt("Enter your real name / ID:")?.trim();
+if (!TEAM_KEY || !TEAM_MEMBER) throw new Error("Missing credentials");
+
+async function apiFetch(url, options = {}) {
+  options.headers = {
+    ...(options.headers || {}),
+    "Content-Type": "application/json",
+    "x-team-key": TEAM_KEY,
+    "x-team-member": TEAM_MEMBER
+  };
+  const res = await fetch(url, options);
+  if (!res.ok) throw new Error(res.statusText);
+  return res;
+}
+
+function arcScore(H, T, target) {
+  const height = Math.abs(H - target);
+  let time = 0;
+  if (T > 39) time = (T - 39) * 4;
+  else if (T < 36) time = (36 - T) * 4;
+  return { height, time, total: height + time };
+}
+
+async function run() {
+  const btn = document.getElementById("compute-btn");
+  btn.disabled = true;
+  btn.innerText = "Computing…";
+
+  try {
+    const payload = {
+      engine: engine.value,
+      temperature: +temp.value,
+      pressure: +pressure.value,
+      humidity: +humidity.value,
+      target_apogee: +target.value
+    };
+
+    const curve = await (await apiFetch("/api/curve", {
+      method: "POST",
+      body: JSON.stringify(payload)
+    })).json();
+
+    const sol = await (await apiFetch("/api/solve", {
+      method: "POST",
+      body: JSON.stringify(payload)
+    })).json();
+
+    document.getElementById("kpi-mass").innerText = sol.mass.toFixed(1) + " g";
+    document.getElementById("kpi-apogee").innerText = sol.H_mean.toFixed(1) + " ft";
+    document.getElementById("kpi-time").innerText = sol.flight_time.toFixed(2) + " s";
+
+    const score = arcScore(sol.H_mean, sol.flight_time, payload.target_apogee);
+    document.getElementById("kpi-hscore").innerText = score.height.toFixed(1);
+    document.getElementById("kpi-tscore").innerText = score.time.toFixed(1);
+    document.getElementById("kpi-total").innerText = score.total.toFixed(1);
+
+    Plotly.newPlot("plot", [
+      { x: curve.mass, y: curve.apogee, mode: "lines", name: "Apogee" },
+
+      {
+        x: [...curve.mass, ...curve.mass.slice().reverse()],
+        y: [...curve.apogee_hi, ...curve.apogee_lo.slice().reverse()],
+        fill: "toself",
+        fillcolor: "rgba(59,130,246,0.15)",
+        line: { width: 0 },
+        name: "±σ"
+      },
+
+      // ★ 推荐解（红点）
+      {
+        x: [sol.mass],
+        y: [sol.H_mean],
+        mode: "markers",
+        name: "Recommended",
+        marker: { size: 10 }
+      },
+
+      // ★ 目标高度（绿虚线）
+      {
+        x: [Math.min(...curve.mass), Math.max(...curve.mass)],
+        y: [payload.target_apogee, payload.target_apogee],
+        mode: "lines",
+        name: "Target",
+        line: { dash: "dash", width: 2 }
+      }
+    ]);
+
+  } catch (err) {
+    alert("Compute failed: " + err.message);
+  } finally {
+    btn.disabled = false;
+    btn.innerText = "Compute";
+  }
+}
+</script>
+</body>
+</html>
