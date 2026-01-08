@@ -22,7 +22,9 @@
       padding: 0 20px;
     }
 
-    h1 { margin-bottom: 12px; }
+    h1 {
+      margin-bottom: 12px;
+    }
 
     .top-bar {
       display: flex;
@@ -31,7 +33,10 @@
       margin-bottom: 12px;
     }
 
-    .lang-select { font-size: 13px; padding: 4px 6px; }
+    .lang-select {
+      font-size: 13px;
+      padding: 4px 6px;
+    }
 
     .card {
       background: white;
@@ -55,7 +60,8 @@
       margin-bottom: 4px;
     }
 
-    select, input {
+    select,
+    input {
       width: 100%;
       padding: 8px;
       border-radius: 6px;
@@ -71,7 +77,10 @@
       font-weight: 600;
     }
 
-    .btn-primary { background: #2563eb; color: white; }
+    .btn-primary {
+      background: #2563eb;
+      color: white;
+    }
 
     .kpi-grid {
       display: grid;
@@ -92,9 +101,14 @@
       margin-bottom: 6px;
     }
 
-    .kpi-value { font-size: 22px; font-weight: 700; }
+    .kpi-value {
+      font-size: 22px;
+      font-weight: 700;
+    }
 
-    #plot { height: 420px; }
+    #plot {
+      height: 420px;
+    }
 
     footer {
       margin: 40px 0 20px;
@@ -102,166 +116,265 @@
       font-size: 12px;
       color: #9ca3af;
     }
+
+    /* ===============================
+       Mobile Responsive Optimization
+       =============================== */
+    @media (max-width: 640px) {
+      .lang-select {
+        display: none;
+      }
+
+      .container {
+        margin: 20px auto;
+        padding: 0 12px;
+      }
+
+      .top-bar {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+      }
+
+      h1 {
+        font-size: 22px;
+      }
+
+      .input-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
+      }
+
+      .btn-primary {
+        width: 100%;
+      }
+
+      .kpi-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px;
+      }
+
+      .kpi {
+        padding: 12px;
+      }
+
+      .kpi-label {
+        font-size: 11px;
+      }
+
+      .kpi-value {
+        font-size: 18px;
+      }
+
+      #plot {
+        height: 320px;
+      }
+
+      footer {
+        font-size: 11px;
+        margin-top: 24px;
+      }
+    }
   </style>
 </head>
 
 <body>
-<div class="container">
+  <div class="container">
 
-  <div class="top-bar">
-    <h1>🚀 Rocket Flight Solver</h1>
-    <select class="lang-select" disabled>
-      <option>English</option>
-    </select>
-  </div>
+    <div class="top-bar">
+      <h1>🚀 Rocket Flight Solver</h1>
+      <select class="lang-select" disabled>
+        <option>English</option>
+      </select>
+    </div>
 
-  <div class="card">
-    <div class="input-grid">
-      <div>
-        <label>Engine</label>
-        <select id="engine">
-          <option>F20-4W</option>
-          <option>F20-7W</option>
-          <option>F52-9C</option>
-          <option>F23-4FJ</option>
-          <option>F42-4T</option>
-        </select>
+    <div class="card">
+      <div class="input-grid">
+
+        <div>
+          <label>Engine</label>
+          <select id="engine">
+            <option>F20-4W</option>
+            <option>F20-7W</option>
+            <option>F52-9C</option>
+            <option>F23-4FJ</option>
+            <option>F42-4T</option>
+          </select>
+        </div>
+
+        <div>
+          <label>Temperature (°C)</label>
+          <input id="temp" value="20">
+        </div>
+
+        <div>
+          <label>Pressure (hPa)</label>
+          <input id="pressure" value="1015">
+        </div>
+
+        <div>
+          <label>Humidity (%)</label>
+          <input id="humidity" value="50">
+        </div>
+
+        <div>
+          <label>Target Apogee (ft)</label>
+          <input id="target" value="750">
+        </div>
+
+        <div>
+          <label>Mode</label>
+          <select id="mode">
+            <option value="normal">Normal (Practice)</option>
+            <option value="final">Final (ARC Finals)</option>
+          </select>
+        </div>
+
       </div>
 
-      <div><label>Temperature (°C)</label><input id="temp" value="20"></div>
-      <div><label>Pressure (hPa)</label><input id="pressure" value="1015"></div>
-      <div><label>Humidity (%)</label><input id="humidity" value="50"></div>
-      <div><label>Target Apogee (ft)</label><input id="target" value="750"></div>
-
-      <div>
-        <label>Mode</label>
-        <select id="mode">
-          <option value="normal">Normal (Practice)</option>
-          <option value="final">Final (ARC Finals)</option>
-        </select>
+      <div style="margin-top:16px;">
+        <button class="btn-primary" id="compute-btn" onclick="run()">Compute</button>
       </div>
     </div>
 
-    <div style="margin-top:16px;">
-      <button class="btn-primary" id="compute-btn" onclick="run()">Compute</button>
+    <div class="card">
+      <div class="kpi-grid">
+
+        <div class="kpi">
+          <div class="kpi-label">Mass</div>
+          <div class="kpi-value" id="kpi-mass">–</div>
+        </div>
+
+        <div class="kpi">
+          <div class="kpi-label">Apogee</div>
+          <div class="kpi-value" id="kpi-apogee">–</div>
+        </div>
+
+        <div class="kpi">
+          <div class="kpi-label">Flight Time</div>
+          <div class="kpi-value" id="kpi-time">–</div>
+        </div>
+
+        <div class="kpi">
+          <div class="kpi-label">Height Score</div>
+          <div class="kpi-value" id="kpi-hscore">–</div>
+        </div>
+
+        <div class="kpi">
+          <div class="kpi-label">Time Score</div>
+          <div class="kpi-value" id="kpi-tscore">–</div>
+        </div>
+
+        <div class="kpi">
+          <div class="kpi-label">Total</div>
+          <div class="kpi-value" id="kpi-total">–</div>
+        </div>
+
+      </div>
     </div>
-  </div>
 
-  <div class="card">
-    <div class="kpi-grid">
-      <div class="kpi"><div class="kpi-label">Mass</div><div class="kpi-value" id="kpi-mass">–</div></div>
-      <div class="kpi"><div class="kpi-label">Apogee</div><div class="kpi-value" id="kpi-apogee">–</div></div>
-      <div class="kpi"><div class="kpi-label">Flight Time</div><div class="kpi-value" id="kpi-time">–</div></div>
-      <div class="kpi"><div class="kpi-label">Height Score</div><div class="kpi-value" id="kpi-hscore">–</div></div>
-      <div class="kpi"><div class="kpi-label">Time Score</div><div class="kpi-value" id="kpi-tscore">–</div></div>
-      <div class="kpi"><div class="kpi-label">Total</div><div class="kpi-value" id="kpi-total">–</div></div>
+    <div class="card">
+      <div id="plot"></div>
     </div>
+
+    <footer>
+      © 2025 George Qiao · Educational & Competition Use Only
+    </footer>
+
   </div>
 
-  <div class="card">
-    <div id="plot"></div>
-  </div>
+  <!-- JS 保持原样，仅整理缩进 -->
+  <script>
+    const TEAM_KEY = prompt("Enter team key:");
+    const TEAM_MEMBER = prompt("Enter your real name / ID:")?.trim();
+    if (!TEAM_KEY || !TEAM_MEMBER) throw new Error("Missing credentials");
 
-  <footer>© 2025 George Qiao · Educational & Competition Use Only</footer>
+    async function apiFetch(url, options = {}) {
+      options.headers = {
+        ...(options.headers || {}),
+        "Content-Type": "application/json",
+        "x-team-key": TEAM_KEY,
+        "x-team-member": TEAM_MEMBER
+      };
+      const res = await fetch(url, options);
+      if (!res.ok) throw new Error(res.statusText);
+      return res;
+    }
 
-</div>
+    function arcScore(H, T, target) {
+      const height = Math.abs(H - target);
+      let time = 0;
+      if (T > 39) time = (T - 39) * 4;
+      else if (T < 36) time = (36 - T) * 4;
+      return { height, time, total: height + time };
+    }
 
-<script>
-const TEAM_KEY = prompt("Enter team key:");
-const TEAM_MEMBER = prompt("Enter your real name / ID:")?.trim();
-if (!TEAM_KEY || !TEAM_MEMBER) throw new Error("Missing credentials");
+    async function run() {
+      const btn = document.getElementById("compute-btn");
+      btn.disabled = true;
+      btn.innerText = "Computing…";
 
-async function apiFetch(url, options = {}) {
-  options.headers = {
-    ...(options.headers || {}),
-    "Content-Type": "application/json",
-    "x-team-key": TEAM_KEY,
-    "x-team-member": TEAM_MEMBER
-  };
-  const res = await fetch(url, options);
-  if (!res.ok) throw new Error(res.statusText);
-  return res;
-}
+      try {
+        const payload = {
+          engine: engine.value,
+          temperature: +temp.value,
+          pressure: +pressure.value,
+          humidity: +humidity.value,
+          target_apogee: +target.value
+        };
 
-function arcScore(H, T, target) {
-  const height = Math.abs(H - target);
-  let time = 0;
-  if (T > 39) time = (T - 39) * 4;
-  else if (T < 36) time = (36 - T) * 4;
-  return { height, time, total: height + time };
-}
+        const curve = await (await apiFetch("/api/curve", {
+          method: "POST",
+          body: JSON.stringify(payload)
+        })).json();
 
-async function run() {
-  const btn = document.getElementById("compute-btn");
-  btn.disabled = true;
-  btn.innerText = "Computing…";
+        const sol = await (await apiFetch("/api/solve", {
+          method: "POST",
+          body: JSON.stringify(payload)
+        })).json();
 
-  try {
-    const payload = {
-      engine: engine.value,
-      temperature: +temp.value,
-      pressure: +pressure.value,
-      humidity: +humidity.value,
-      target_apogee: +target.value
-    };
+        document.getElementById("kpi-mass").innerText = sol.mass.toFixed(1) + " g";
+        document.getElementById("kpi-apogee").innerText = sol.H_mean.toFixed(1) + " ft";
+        document.getElementById("kpi-time").innerText = sol.flight_time.toFixed(2) + " s";
 
-    const curve = await (await apiFetch("/api/curve", {
-      method: "POST",
-      body: JSON.stringify(payload)
-    })).json();
+        const score = arcScore(sol.H_mean, sol.flight_time, payload.target_apogee);
+        document.getElementById("kpi-hscore").innerText = score.height.toFixed(1);
+        document.getElementById("kpi-tscore").innerText = score.time.toFixed(1);
+        document.getElementById("kpi-total").innerText = score.total.toFixed(1);
 
-    const sol = await (await apiFetch("/api/solve", {
-      method: "POST",
-      body: JSON.stringify(payload)
-    })).json();
+        Plotly.newPlot("plot", [
+          { x: curve.mass, y: curve.apogee, mode: "lines", name: "Apogee" },
+          {
+            x: [...curve.mass, ...curve.mass.slice().reverse()],
+            y: [...curve.apogee_hi, ...curve.apogee_lo.slice().reverse()],
+            fill: "toself",
+            fillcolor: "rgba(59,130,246,0.15)",
+            line: { width: 0 },
+            name: "±σ"
+          },
+          {
+            x: [sol.mass],
+            y: [sol.H_mean],
+            mode: "markers",
+            name: "Recommended",
+            marker: { size: 10 }
+          },
+          {
+            x: [Math.min(...curve.mass), Math.max(...curve.mass)],
+            y: [payload.target_apogee, payload.target_apogee],
+            mode: "lines",
+            name: "Target",
+            line: { dash: "dash", width: 2 }
+          }
+        ]);
 
-    document.getElementById("kpi-mass").innerText = sol.mass.toFixed(1) + " g";
-    document.getElementById("kpi-apogee").innerText = sol.H_mean.toFixed(1) + " ft";
-    document.getElementById("kpi-time").innerText = sol.flight_time.toFixed(2) + " s";
-
-    const score = arcScore(sol.H_mean, sol.flight_time, payload.target_apogee);
-    document.getElementById("kpi-hscore").innerText = score.height.toFixed(1);
-    document.getElementById("kpi-tscore").innerText = score.time.toFixed(1);
-    document.getElementById("kpi-total").innerText = score.total.toFixed(1);
-
-    Plotly.newPlot("plot", [
-      { x: curve.mass, y: curve.apogee, mode: "lines", name: "Apogee" },
-
-      {
-        x: [...curve.mass, ...curve.mass.slice().reverse()],
-        y: [...curve.apogee_hi, ...curve.apogee_lo.slice().reverse()],
-        fill: "toself",
-        fillcolor: "rgba(59,130,246,0.15)",
-        line: { width: 0 },
-        name: "±σ"
-      },
-
-      // ★ 推荐解（红点）
-      {
-        x: [sol.mass],
-        y: [sol.H_mean],
-        mode: "markers",
-        name: "Recommended",
-        marker: { size: 10 }
-      },
-
-      // ★ 目标高度（绿虚线）
-      {
-        x: [Math.min(...curve.mass), Math.max(...curve.mass)],
-        y: [payload.target_apogee, payload.target_apogee],
-        mode: "lines",
-        name: "Target",
-        line: { dash: "dash", width: 2 }
+      } catch (err) {
+        alert("Compute failed: " + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.innerText = "Compute";
       }
-    ]);
-
-  } catch (err) {
-    alert("Compute failed: " + err.message);
-  } finally {
-    btn.disabled = false;
-    btn.innerText = "Compute";
-  }
-}
-</script>
+    }
+  </script>
 </body>
 </html>
