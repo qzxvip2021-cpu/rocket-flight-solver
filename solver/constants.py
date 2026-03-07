@@ -13,5 +13,6 @@ FT_TO_M = 0.3048
 
 SITE = {
     "name": "Lucerne Valley",
-    "elevation_m": 870.0
+    "elevation_m": 136.0
 }
+
