@@ -290,15 +290,13 @@
 
   <!-- JS 保持原样，仅整理缩进 -->
   <script>
-    const TEAM_KEY = prompt("Enter team key:");
     const TEAM_MEMBER = prompt("Enter your real name / ID:")?.trim();
-    if (!TEAM_KEY || !TEAM_MEMBER) throw new Error("Missing credentials");
+    if (!TEAM_MEMBER) throw new Error("Missing credentials");
 
     async function apiFetch(url, options = {}) {
       options.headers = {
         ...(options.headers || {}),
         "Content-Type": "application/json",
-        "x-team-key": TEAM_KEY,
         "x-team-member": TEAM_MEMBER
       };
       const res = await fetch(url, options);
