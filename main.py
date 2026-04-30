@@ -35,9 +35,7 @@ TEAM_PASSWORD = os.getenv("TEAM_PASSWORD")
 if TEAM_PASSWORD is None:
     raise RuntimeError("TEAM_PASSWORD is not set")
 
-TEAM_API_KEY = os.getenv("TEAM_API_KEY")
-if TEAM_API_KEY is None:
-    raise RuntimeError("TEAM_API_KEY is not set")
+
 
 ARC_EXCEL_PATH = os.getenv(
     "ARC_EXCEL_PATH", os.path.join("data", "ARC_flights.xlsx")
@@ -143,10 +141,6 @@ def log_access(
 # Auth dependencies
 # =========================================================
 
-def require_team_key(x_team_key: Optional[str] = Header(None)) -> None:
-    if x_team_key != TEAM_API_KEY:
-        raise HTTPException(status_code=401, detail="Invalid or missing team key")
-
 
 def require_team_member(x_team_member: Optional[str] = Header(None)) -> str:
     if x_team_member is None:
@@ -195,7 +189,6 @@ def audit(password: str):
 @app.post("/api/admin/final_mode")
 def set_final_mode(
     payload: dict = Body(...),
-    _: None = Depends(require_team_key),
     member: str = Depends(require_team_member),
 ):
     password = payload.get("password")
@@ -247,7 +240,6 @@ def health():
 def curve(
     req: SolveRequest,
     request: Request,
-    _: None = Depends(require_team_key),
     member: str = Depends(require_team_member),
 ):
     if req.engine not in ENGINES:
@@ -295,7 +287,6 @@ def curve(
 def solve(
     req: SolveRequest,
     request: Request,
-    _: None = Depends(require_team_key),
     member: str = Depends(require_team_member),
 ):
     if req.engine not in ENGINES:
@@ -331,7 +322,6 @@ def solve(
 def final_solve(
     req: SolveRequest,
     request: Request,
-    _: None = Depends(require_team_key),
     __: None = Depends(require_final_mode_enabled),
     member: str = Depends(require_team_member),
 ):
