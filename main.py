@@ -85,6 +85,7 @@ class SolveRequest(BaseModel):
     pressure: float
     humidity: float
     target_apogee: float
+    elevation_m: float
 
 
 # =========================================================
