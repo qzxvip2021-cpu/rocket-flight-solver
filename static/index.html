@@ -203,6 +203,11 @@
         </div>
 
         <div>
+          <label>Launch Site Elevation (m)</label>
+          <input id="elevation" value="850">
+        </div>
+        
+        <div>
           <label>Temperature (°C)</label>
           <input id="temp" value="20">
         </div>
@@ -320,7 +325,8 @@
           temperature: +temp.value,
           pressure: +pressure.value,
           humidity: +humidity.value,
-          target_apogee: +target.value
+          target_apogee: +target.value,
+          elevation_m: +elevation.value
         };
 
         const curve = await (await apiFetch("/api/curve", {
