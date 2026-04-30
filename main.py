@@ -259,7 +259,7 @@ def curve(
         req.pressure,
         req.temperature,
         req.humidity,
-        SITE["elevation_m"],
+        req.elevation_m,
     )
 
     masses = list(range(553, 651))
@@ -307,7 +307,7 @@ def solve(
         "temperature": req.temperature,
         "pressure": req.pressure,
         "humidity": req.humidity,
-        "elevation": SITE["elevation_m"],
+        "elevation": req.elevation_m,
     }
 
     # ✅ “时间分优先”逻辑已在 solve_mass 内部实现（见 solver/solver.py）
@@ -344,7 +344,7 @@ def final_solve(
         "temperature": req.temperature,
         "pressure": req.pressure,
         "humidity": req.humidity,
-        "elevation": SITE["elevation_m"],
+        "elevation": req.elevation_m,
     }
 
     result = monte_carlo_final_solver(
