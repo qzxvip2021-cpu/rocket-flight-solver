@@ -19,7 +19,7 @@ from solver.model_store import get_model, set_model
 from solver.train_from_excel import train_model_from_excel
 from solver.final_solver import monte_carlo_final_solver
 from solver.solver import solve_mass
-from solver.constants import SITE, H_WINDOW
+from solver.constants import SITE, H_WINDOW, MIN_LIFTOFF_MASS, MAX_LIFTOFF_MASS
 from solver.engines import ENGINES, engine_scale
 from solver.models import RHO_REF
 from solver.atmosphere import atmosphere_density
