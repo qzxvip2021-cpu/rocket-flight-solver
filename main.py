@@ -254,7 +254,7 @@ def curve(
         req.elevation_m,
     )
 
-    masses = list(range(553, 651))
+    masses = list(range(int(MIN_LIFTOFF_MASS), int(MAX_LIFTOFF_MASS) + 1))
     apogee, hi, lo, conf = [], [], [], []
 
     for m in masses:
